@@ -66,6 +66,11 @@ public:
             float compressedL = inputL * grGain * juce::Decibels::decibelsToGain(makeupGain);
             float compressedR = inputR * grGain * juce::Decibels::decibelsToGain(makeupGain);
 
+            // Limit mode logic: force high ratio and faster response if needed
+            if (isLimit) {
+                // Additional limiting logic could go here
+            }
+
             // Wet/Dry mix
             float mixedL = compressedL * wetDry + inputL * (1.0f - wetDry);
             float mixedR = compressedR * wetDry + inputR * (1.0f - wetDry);

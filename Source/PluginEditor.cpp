@@ -31,6 +31,11 @@ OpticalCompressorAudioProcessorEditor::OpticalCompressorAudioProcessorEditor(Opt
     addAndMakeVisible(limitButton);
     limitAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(audioProcessor.apvts, "limit", limitButton);
 
+    // Enable resizability
+    setResizable(true, true);
+    setResizeLimits(400, 300, 2048, 1536);
+    getConstrainer()->setFixedAspectRatio(1024.0 / 768.0);
+
     // Apply custom look and feel to all sliders
     auto applyLAF = [&](juce::Slider& s) {
         s.setLookAndFeel(&customLookAndFeel);
@@ -65,12 +70,13 @@ void OpticalCompressorAudioProcessorEditor::paint(juce::Graphics& g)
     // Draw Gain Reduction Meter (aligned with the skin's meter area)
     auto meterArea = juce::Rectangle<int>(145, 305, 55, 465); // Refined based on epic skin
     
-    float gr = audioProcessor.apvts.getRawParameterValue("threshold")->load(); // Simplified for now
-    float grNormalized = juce::jmap(gr, -50.0f, 5.0f, 0.0f, 1.0f);
+    // Get actual GR from the processor
+    float gr = audioProcessor.getGainReduction(); 
+    float grNormalized = juce::jlimit(0.0f, 1.0f, std::abs(gr) / 24.0f); // Scale 0-24dB
     
     g.setColour(juce::Colours::red.withAlpha(0.8f));
     int grHeight = (int)(meterArea.getHeight() * grNormalized);
-    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getBottom() - grHeight));
+    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getY())); // GR meter usually goes down from top
 
     // Draw Limit Light
     if (audioProcessor.apvts.getRawParameterValue("limit")->load() > 0.5f)
