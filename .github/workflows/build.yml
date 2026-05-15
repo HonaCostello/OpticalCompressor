@@ -29,5 +29,5 @@ jobs:
       with:
         name: OpticalCompressor-macOS
         path: |
-          build/OpticalCompressor_artefacts/Release/VST3/Optical Compressor.vst3
-          build/OpticalCompressor_artefacts/Release/AU/Optical Compressor.component
+          build/OpticalCompressor_artefacts/Release/VST3/The Godfather.vst3
+          build/OpticalCompressor_artefacts/Release/AU/The Godfather.component

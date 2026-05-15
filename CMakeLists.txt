@@ -6,20 +6,20 @@ project(OpticalCompressor VERSION 1.0.0)
 add_subdirectory(JUCE)
 
 juce_add_plugin(OpticalCompressor
-    COMPANY_NAME "ManusAI"
+    COMPANY_NAME "Hona Costello"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_STEP_FINISHED_ANYWHERE FALSE
-    PLUGIN_MANUFACTURER_CODE Manu
-    PLUGIN_CODE OptC
+    PLUGIN_MANUFACTURER_CODE Hona
+    PLUGIN_CODE GDFR
     VST3_CATEGORIES Compressor
-    BUNDLE_ID com.honacostello.opticalcompressor
+    BUNDLE_ID com.honacostello.thegodfather
     FORMATS VST3 AU
     JUCE_VST3_CAN_REPLACE_VST2 FALSE
-    PRODUCT_NAME "Optical Compressor")
+    PRODUCT_NAME "The Godfather")
 
 juce_add_binary_data(OpticalCompressorData
     SOURCES
