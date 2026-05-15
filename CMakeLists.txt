@@ -23,7 +23,8 @@ juce_add_plugin(OpticalCompressor
 
 juce_add_binary_data(OpticalCompressorData
     SOURCES
-        Resources/skin.jpg)
+        Resources/skin.jpg
+        Resources/knob.png)
 
 target_link_libraries(OpticalCompressor
     PRIVATE

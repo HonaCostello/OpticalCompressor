@@ -9,35 +9,20 @@ public:
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
                           const float rotaryStartAngle, const float rotaryEndAngle, juce::Slider& slider) override
     {
-        auto radius = (float)juce::jmin(width / 2, height / 2) - 2.0f;
-        auto centreX = (float)x + (float)width * 0.5f;
-        auto centreY = (float)y + (float)height * 0.5f;
-        auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-
-        // Draw the rotating knob body (simulating the rose/gun icons rotating)
-        g.setColour(juce::Colours::black.withAlpha(0.2f));
-        g.fillEllipse(centreX - radius, centreY - radius, radius * 2, radius * 2);
-
-        // Draw a high-visibility rotating indicator line
-        juce::Path p;
-        auto pointerLength = radius * 0.9f;
-        auto pointerThickness = 5.0f;
-        p.addRoundedRectangle(-pointerThickness * 0.5f, -radius, pointerThickness, pointerLength, 2.0f);
-        p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
-
-        // Glow effect for the indicator
-        juce::Graphics::ScopedSaveState save(g);
-        g.addTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
+        auto knobImg = juce::ImageCache::getFromMemory(BinaryData::knob_png, BinaryData::knob_pngSize);
         
-        juce::ColourGradient cg(juce::Colours::red, 0, -radius, juce::Colours::red.withAlpha(0.0f), 0, 0, false);
-        g.setGradientFill(cg);
-        g.fillPath(p);
+        if (knobImg.isValid())
+        {
+            auto centreX = (float)x + (float)width * 0.5f;
+            auto centreY = (float)y + (float)height * 0.5f;
+            auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        g.setColour(juce::Colours::red);
-        g.fillPath(p);
-        
-        g.setColour(juce::Colours::white.withAlpha(0.9f));
-        g.fillEllipse(-1.5f, -radius - 1.5f, 3, 3);
+            juce::AffineTransform t;
+            t = t.rotated(angle, (float)knobImg.getWidth() * 0.5f, (float)knobImg.getHeight() * 0.5f);
+            t = t.translated(centreX - (float)knobImg.getWidth() * 0.5f, centreY - (float)knobImg.getHeight() * 0.5f);
+
+            g.drawImageTransformed(knobImg, t);
+        }
     }
 };
 
