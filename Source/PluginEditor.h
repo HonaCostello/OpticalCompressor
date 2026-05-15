@@ -29,7 +29,7 @@ public:
         juce::Graphics::ScopedSaveState save(g);
         g.addTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
         
-        juce::ColourGradient cg(juce::Colours::red, 0, -radius, juce::Colours::transparentRed, 0, 0, false);
+        juce::ColourGradient cg(juce::Colours::red, 0, -radius, juce::Colours::red.withAlpha(0.0f), 0, 0, false);
         g.setGradientFill(cg);
         g.fillPath(p);
 
