@@ -18,6 +18,7 @@ juce_add_plugin(OpticalCompressor
     VST3_CATEGORIES Compressor
     BUNDLE_ID com.honacostello.opticalcompressor
     FORMATS VST3 AU
+    JUCE_VST3_CAN_REPLACE_VST2 FALSE
     PRODUCT_NAME "Optical Compressor")
 
 target_sources(OpticalCompressor
