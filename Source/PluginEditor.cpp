@@ -67,36 +67,36 @@ void OpticalCompressorAudioProcessorEditor::paint(juce::Graphics& g)
     else
         g.fillAll(juce::Colours::black);
 
-    // Draw Gain Reduction Meter (aligned with the skin's meter area)
-    auto meterArea = juce::Rectangle<int>(145, 305, 55, 465); // Refined based on epic skin
-    
-    // Get actual GR from the processor
+    float scaleX = getWidth() / 1230.0f; // Original image width
+    float scaleY = getHeight() / 930.0f; // Original image height
+
+    // Draw Gain Reduction Meter
+    auto meterArea = juce::Rectangle<float>(175 * scaleX, 305 * scaleY, 65 * scaleX, 465 * scaleY);
     float gr = audioProcessor.getGainReduction(); 
-    float grNormalized = juce::jlimit(0.0f, 1.0f, std::abs(gr) / 24.0f); // Scale 0-24dB
+    float grNormalized = juce::jlimit(0.0f, 1.0f, std::abs(gr) / 24.0f);
     
     g.setColour(juce::Colours::red.withAlpha(0.8f));
-    int grHeight = (int)(meterArea.getHeight() * grNormalized);
-    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getY())); // GR meter usually goes down from top
+    float grHeight = meterArea.getHeight() * grNormalized;
+    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getY()));
 
     // Draw Limit Light
     if (audioProcessor.apvts.getRawParameterValue("limit")->load() > 0.5f)
     {
         g.setColour(juce::Colours::red.withAlpha(0.9f));
-        g.fillEllipse(495, 675, 25, 25); // Positioned over the switch light
+        g.fillEllipse(595 * scaleX, 855 * scaleY, 30 * scaleX, 30 * scaleY);
     }
 }
 
 void OpticalCompressorAudioProcessorEditor::resized()
 {
-    // Adjusting sizes to match the 1024x768 aspect ratio of the skin
-    float scaleX = getWidth() / 1024.0f;
-    float scaleY = getHeight() / 768.0f;
+    float scaleX = getWidth() / 1230.0f;
+    float scaleY = getHeight() / 930.0f;
 
-    auto setBoundsScaled = [&](juce::Component& c, int x, int y, int w, int h) {
+    auto setBoundsScaled = [&](juce::Component& c, float x, float y, float w, float h) {
         c.setBounds((int)(x * scaleX), (int)(y * scaleY), (int)(w * scaleX), (int)(h * scaleY));
     };
 
-    // Hide labels as they are part of the skin
+    // Hide labels
     inputGainLabel.setVisible(false);
     thresholdLabel.setVisible(false);
     ratioLabel.setVisible(false);
@@ -107,21 +107,20 @@ void OpticalCompressorAudioProcessorEditor::resized()
     wetDryLabel.setVisible(false);
     outputGainLabel.setVisible(false);
 
-    // Position sliders over the skin's knobs (Epic Skin coordinates - recalibrated)
-    setBoundsScaled(inputGainSlider, 315, 335, 105, 105);
-    setBoundsScaled(thresholdSlider, 490, 335, 105, 105); // "Peak Reduction"
-    setBoundsScaled(ratioSlider, 660, 335, 105, 105);
-    setBoundsScaled(makeupSlider, 830, 335, 105, 105);
+    // Precise coordinates for Epic Skin
+    setBoundsScaled(inputGainSlider, 380, 330, 130, 130);
+    setBoundsScaled(thresholdSlider, 590, 330, 130, 130);
+    setBoundsScaled(ratioSlider, 800, 330, 130, 130);
+    setBoundsScaled(makeupSlider, 1010, 330, 130, 130);
 
-    setBoundsScaled(attackSlider, 285, 645, 95, 95);
-    setBoundsScaled(releaseSlider, 425, 645, 95, 95);
-    setBoundsScaled(saturationSlider, 565, 645, 95, 95);
-    setBoundsScaled(wetDrySlider, 705, 645, 95, 95);
-    setBoundsScaled(outputGainSlider, 845, 645, 95, 95);
+    setBoundsScaled(attackSlider, 345, 645, 115, 115);
+    setBoundsScaled(releaseSlider, 515, 645, 115, 115);
+    setBoundsScaled(saturationSlider, 685, 645, 115, 115);
+    setBoundsScaled(wetDrySlider, 855, 645, 115, 115);
+    setBoundsScaled(outputGainSlider, 1025, 645, 115, 115);
 
-    setBoundsScaled(limitButton, 485, 835, 90, 45); // Positioned over the switch
+    setBoundsScaled(limitButton, 580, 840, 120, 60);
     
-    // Make sliders transparent to show the skin's knobs
     auto makeTransparent = [](juce::Slider& s) {
         s.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::transparentBlack);
         s.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::transparentBlack);
