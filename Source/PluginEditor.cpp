@@ -107,19 +107,19 @@ void OpticalCompressorAudioProcessorEditor::resized()
     wetDryLabel.setVisible(false);
     outputGainLabel.setVisible(false);
 
-    // Position sliders over the skin's knobs (Epic Skin coordinates)
-    setBoundsScaled(inputGainSlider, 310, 330, 110, 110);
-    setBoundsScaled(thresholdSlider, 485, 330, 110, 110); // "Peak Reduction"
-    setBoundsScaled(ratioSlider, 655, 330, 110, 110);
-    setBoundsScaled(makeupSlider, 825, 330, 110, 110);
+    // Position sliders over the skin's knobs (Epic Skin coordinates - recalibrated)
+    setBoundsScaled(inputGainSlider, 315, 335, 105, 105);
+    setBoundsScaled(thresholdSlider, 490, 335, 105, 105); // "Peak Reduction"
+    setBoundsScaled(ratioSlider, 660, 335, 105, 105);
+    setBoundsScaled(makeupSlider, 830, 335, 105, 105);
 
-    setBoundsScaled(attackSlider, 280, 640, 100, 100);
-    setBoundsScaled(releaseSlider, 420, 640, 100, 100);
-    setBoundsScaled(saturationSlider, 560, 640, 100, 100);
-    setBoundsScaled(wetDrySlider, 700, 640, 100, 100);
-    setBoundsScaled(outputGainSlider, 840, 640, 100, 100);
+    setBoundsScaled(attackSlider, 285, 645, 95, 95);
+    setBoundsScaled(releaseSlider, 425, 645, 95, 95);
+    setBoundsScaled(saturationSlider, 565, 645, 95, 95);
+    setBoundsScaled(wetDrySlider, 705, 645, 95, 95);
+    setBoundsScaled(outputGainSlider, 845, 645, 95, 95);
 
-    setBoundsScaled(limitButton, 480, 830, 100, 50); // Positioned over the switch
+    setBoundsScaled(limitButton, 485, 835, 90, 45); // Positioned over the switch
     
     // Make sliders transparent to show the skin's knobs
     auto makeTransparent = [](juce::Slider& s) {
