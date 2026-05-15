@@ -48,7 +48,7 @@ OpticalCompressorAudioProcessorEditor::~OpticalCompressorAudioProcessorEditor()
 
 void OpticalCompressorAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    auto skin = juce::ImageCache::getFromMemory(BinaryData::skin_jpg, BinaryData::skin_jpgSize);
+    auto skin = juce::ImageCache::getFromMemory(BinaryData::skin_clean_jpg, BinaryData::skin_clean_jpgSize);
     if (skin.isValid())
         g.drawImageWithin(skin, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
 

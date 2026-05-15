@@ -9,7 +9,7 @@ public:
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
                           const float rotaryStartAngle, const float rotaryEndAngle, juce::Slider& slider) override
     {
-        auto knobImg = juce::ImageCache::getFromMemory(BinaryData::knob_png, BinaryData::knob_pngSize);
+        auto knobImg = juce::ImageCache::getFromMemory(BinaryData::knob_pro_png, BinaryData::knob_pro_pngSize);
         
         if (knobImg.isValid())
         {
@@ -17,9 +17,12 @@ public:
             auto centreY = (float)y + (float)height * 0.5f;
             auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
+            float scale = (float)width / (float)knobImg.getWidth();
+            
             juce::AffineTransform t;
             t = t.rotated(angle, (float)knobImg.getWidth() * 0.5f, (float)knobImg.getHeight() * 0.5f);
-            t = t.translated(centreX - (float)knobImg.getWidth() * 0.5f, centreY - (float)knobImg.getHeight() * 0.5f);
+            t = t.scaled(scale);
+            t = t.translated(centreX - (float)width * 0.5f, centreY - (float)height * 0.5f);
 
             g.drawImageTransformed(knobImg, t);
         }
