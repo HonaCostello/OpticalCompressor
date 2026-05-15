@@ -12,11 +12,7 @@ OpticalCompressorAudioProcessor::~OpticalCompressorAudioProcessor() {}
 
 void OpticalCompressorAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = getTotalNumOutputChannels();
-    dsp.prepare(spec);
+    dsp.prepare(sampleRate, samplesPerBlock);
 }
 
 void OpticalCompressorAudioProcessor::releaseResources() {}
@@ -24,19 +20,7 @@ void OpticalCompressorAudioProcessor::releaseResources() {}
 void OpticalCompressorAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-
-    dsp.setThreshold(apvts.getRawParameterValue("threshold")->load());
-    dsp.setRatio(apvts.getRawParameterValue("ratio")->load());
-    dsp.setAttack(apvts.getRawParameterValue("attack")->load());
-    dsp.setRelease(apvts.getRawParameterValue("release")->load());
-    dsp.setMakeupGain(apvts.getRawParameterValue("makeup")->load());
-    dsp.setIsLimit(apvts.getRawParameterValue("limit")->load() > 0.5f);
-    dsp.setSaturation(apvts.getRawParameterValue("saturation")->load());
-    dsp.setWetDry(apvts.getRawParameterValue("wetdry")->load());
-    dsp.setInputGain(apvts.getRawParameterValue("inputgain")->load());
-    dsp.setOutputGain(apvts.getRawParameterValue("outputgain")->load());
-
-    dsp.process(buffer);
+    dsp.process(buffer, apvts);
 }
 
 juce::AudioProcessorEditor* OpticalCompressorAudioProcessor::createEditor()
@@ -65,14 +49,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpticalCompressorAudioProces
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>("inputgain", "Input Gain", -60.0f, 24.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("threshold", "Threshold", -50.0f, 5.0f, -20.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("ratio", "Ratio", 1.0f, 3.1f, 2.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("attack", "Attack", 0.0f, 10.0f, 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("ratio", "Ratio", 1.0f, 20.0f, 2.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("attack", "Attack", 0.0f, 100.0f, 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("release", "Release", 0.0f, 1000.0f, 50.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("makeup", "Make-up", -100.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("makeupgain", "Make-up", -100.0f, 100.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>("limit", "Limit Mode", false));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("saturation", "Saturation", 0.0f, 1.0f, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("wetdry", "Wet/Dry", 0.0f, 1.0f, 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("saturation", "Saturation", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("wetdry", "Wet/Dry", 0.0f, 100.0f, 100.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("outputgain", "Output Gain", -60.0f, 24.0f, 0.0f));
+
+    // New Vocal Strip Parameters
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("gatethreshold", "Gate Threshold", -100.0f, 0.0f, -100.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("gaterange", "Gate Range", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("gaterelease", "Gate Release", 10.0f, 1000.0f, 100.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("delayvol", "Delay Volume", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("fxwetdry", "FX Wet/Dry", 0.0f, 100.0f, 0.0f));
 
     return { params.begin(), params.end() };
 }

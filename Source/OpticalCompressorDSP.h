@@ -5,111 +5,98 @@
 class OpticalCompressorDSP
 {
 public:
-    OpticalCompressorDSP()
+    void prepare(double sampleRate, int samplesPerBlock)
     {
-        // Initialize parameters
-        threshold = -20.0f;
-        ratio = 2.0f;
-        attack = 5.0f;
-        release = 5.0f;
-        makeupGain = 0.0f;
-        isLimit = false;
-        saturation = 0.0f;
-        wetDry = 1.0f;
-        inputGain = 0.0f;
-        outputGain = 0.0f;
-
-        envelope = 0.0f;
-    }
-
-    void prepare(const juce::dsp::ProcessSpec& spec)
-    {
-        sampleRate = spec.sampleRate;
+        this->sampleRate = sampleRate;
         
-        juce::dsp::ProcessSpec monoSpec = spec;
-        monoSpec.numChannels = 1;
+        // Prepare Reverb
+        juce::Reverb::Parameters reverbParams;
+        reverb.setParameters(reverbParams);
+        reverb.setSampleRate(sampleRate);
+
+        // Prepare Delay
+        delayBuffer.setSize(2, (int)(sampleRate * 2.0)); // 2 seconds max delay
+        delayBuffer.clear();
+        writePos = 0;
+
+        // Prepare EQ (Simplified 10-band)
+        for (int i = 0; i < 10; ++i) {
+            filters[i].reset();
+        }
     }
 
-    void process(juce::AudioBuffer<float>& buffer)
+    void process(juce::AudioBuffer<float>& buffer, juce::AudioProcessorValueTreeState& apvts)
     {
-        auto numChannels = buffer.getNumChannels();
-        auto numSamples = buffer.getNumSamples();
+        auto inputGain = juce::Decibels::decibelsToGain(apvts.getRawParameterValue("inputgain")->load());
+        auto threshold = apvts.getRawParameterValue("threshold")->load();
+        auto ratio = apvts.getRawParameterValue("ratio")->load();
+        auto attack = apvts.getRawParameterValue("attack")->load() / 1000.0f;
+        auto release = apvts.getRawParameterValue("release")->load() / 1000.0f;
+        auto makeupGain = apvts.getRawParameterValue("makeupgain")->load();
+        auto saturation = apvts.getRawParameterValue("saturation")->load() / 100.0f;
+        auto wetDry = apvts.getRawParameterValue("wetdry")->load() / 100.0f;
+        bool isLimit = apvts.getRawParameterValue("limit")->load() > 0.5f;
 
-        float currentThreshold = threshold;
-        float currentRatio = isLimit ? 20.0f : ratio;
-        float attCoeff = 1.0f - std::exp(-1.0f / (sampleRate * (attack / 1000.0f)));
-        float relCoeff = 1.0f - std::exp(-1.0f / (sampleRate * (release / 1000.0f)));
+        // New Parameters
+        auto gateThreshold = apvts.getRawParameterValue("gatethreshold")->load();
+        auto gateRange = apvts.getRawParameterValue("gaterange")->load();
+        auto gateRelease = apvts.getRawParameterValue("gaterelease")->load() / 1000.0f;
+        auto delayVol = apvts.getRawParameterValue("delayvol")->load() / 100.0f;
+        auto fxWetDry = apvts.getRawParameterValue("fxwetdry")->load() / 100.0f;
 
-        for (int sample = 0; sample < numSamples; ++sample)
+        if (isLimit) ratio = 20.0f;
+
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
         {
-            float inputL = buffer.getSample(0, sample) * juce::Decibels::decibelsToGain(inputGain);
-            float inputR = numChannels > 1 ? buffer.getSample(1, sample) * juce::Decibels::decibelsToGain(inputGain) : inputL;
+            auto* channelData = buffer.getWritePointer(channel);
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                float input = channelData[i] * inputGain;
+                
+                // 1. GATE
+                float absInput = std::abs(input);
+                if (absInput < juce::Decibels::decibelsToGain(gateThreshold)) {
+                    input *= juce::Decibels::decibelsToGain(-gateRange);
+                }
 
-            // Sidechain signal (mono sum)
-            float sidechain = (std::abs(inputL) + std::abs(inputR)) * 0.5f;
-            float sidechainDb = juce::Decibels::gainToDecibels(sidechain, -120.0f);
+                // 2. COMPRESSOR (Optical Style)
+                float env = std::abs(input);
+                if (env > envelope) envelope += (env - envelope) * (1.0f - std::exp(-1.0f / (sampleRate * attack)));
+                else envelope += (env - envelope) * (1.0f - std::exp(-1.0f / (sampleRate * release)));
 
-            // Optical envelope follower (non-linear)
-            if (sidechainDb > envelope)
-                envelope += (sidechainDb - envelope) * attCoeff;
-            else
-                envelope += (sidechainDb - envelope) * relCoeff;
+                float grDb = 0.0f;
+                if (juce::Decibels::gainToDecibels(envelope) > threshold) {
+                    grDb = (threshold - juce::Decibels::gainToDecibels(envelope)) * (1.0f - 1.0f / ratio);
+                }
+                lastGR = grDb;
+                float grGain = juce::Decibels::decibelsToGain(grDb);
+                float compressed = input * grGain * juce::Decibels::decibelsToGain(makeupGain);
 
-            // Gain reduction calculation
-            float over = std::max(0.0f, envelope - currentThreshold);
-            float grDb = over * (1.0f / currentRatio - 1.0f);
-            float grGain = juce::Decibels::decibelsToGain(grDb);
+                // 3. SATURATION
+                if (saturation > 0.0f) {
+                    compressed = std::tanh(compressed * (1.0f + saturation * 2.0f));
+                }
 
-            lastGR = grDb; // For metering
+                // 4. EQ (Simplified)
+                // In a real VST we'd use 10 peaking filters here
+                
+                // 5. FX (Delay & Reverb)
+                float fxOut = compressed;
+                // Add Reverb/Delay logic here...
 
-            // Apply compression and makeup
-            float compressedL = inputL * grGain * juce::Decibels::decibelsToGain(makeupGain);
-            float compressedR = inputR * grGain * juce::Decibels::decibelsToGain(makeupGain);
-
-            // Limit mode logic: force high ratio and faster response if needed
-            if (isLimit) {
-                // Additional limiting logic could go here
+                channelData[i] = compressed * wetDry + input * (1.0f - wetDry);
             }
-
-            // Wet/Dry mix
-            float mixedL = compressedL * wetDry + inputL * (1.0f - wetDry);
-            float mixedR = compressedR * wetDry + inputR * (1.0f - wetDry);
-
-            // Saturation (Soft clipping)
-            mixedL = applySaturation(mixedL, saturation);
-            mixedR = applySaturation(mixedR, saturation);
-
-            // Output gain
-            buffer.setSample(0, sample, mixedL * juce::Decibels::decibelsToGain(outputGain));
-            if (numChannels > 1)
-                buffer.setSample(1, sample, mixedR * juce::Decibels::decibelsToGain(outputGain));
         }
     }
 
     float getGainReduction() const { return lastGR; }
 
-    // Parameter setters
-    void setThreshold(float val) { threshold = val; }
-    void setRatio(float val) { ratio = val; }
-    void setAttack(float val) { attack = val; }
-    void setRelease(float val) { release = val; }
-    void setMakeupGain(float val) { makeupGain = val; }
-    void setIsLimit(bool val) { isLimit = val; }
-    void setSaturation(float val) { saturation = val; }
-    void setWetDry(float val) { wetDry = val; }
-    void setInputGain(float val) { inputGain = val; }
-    void setOutputGain(float val) { outputGain = val; }
-
 private:
-    float applySaturation(float x, float s)
-    {
-        if (s <= 0.0f) return x;
-        return (1.0f - s) * x + s * std::tanh(x * 1.5f);
-    }
-
     double sampleRate = 44100.0;
-    float threshold, ratio, attack, release, makeupGain, saturation, wetDry, inputGain, outputGain;
-    bool isLimit;
-    float envelope;
+    float envelope = 0.0f;
     float lastGR = 0.0f;
+    juce::Reverb reverb;
+    juce::AudioBuffer<float> delayBuffer;
+    int writePos = 0;
+    juce::IIRFilter filters[10];
 };

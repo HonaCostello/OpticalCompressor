@@ -4,53 +4,40 @@
 OpticalCompressorAudioProcessorEditor::OpticalCompressorAudioProcessorEditor(OpticalCompressorAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    auto setupSlider = [&](juce::Slider& slider, juce::Label& label, const juce::String& name, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment, const juce::String& paramID) {
+    auto setupSlider = [&](juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment, juce::String paramID) {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 20);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        slider.setLookAndFeel(&customLookAndFeel);
         addAndMakeVisible(slider);
-        
-        label.setText(name, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centred);
-        addAndMakeVisible(label);
-        
         attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, paramID, slider);
     };
 
-    setupSlider(inputGainSlider, inputGainLabel, "Input", inputGainAttachment, "inputgain");
-    setupSlider(thresholdSlider, thresholdLabel, "Threshold", thresholdAttachment, "threshold");
-    setupSlider(ratioSlider, ratioLabel, "Ratio", ratioAttachment, "ratio");
-    setupSlider(attackSlider, attackLabel, "Attack", attackAttachment, "attack");
-    setupSlider(releaseSlider, releaseLabel, "Release", releaseAttachment, "release");
-    setupSlider(makeupSlider, makeupLabel, "Make-up", makeupAttachment, "makeup");
-    setupSlider(saturationSlider, saturationLabel, "Saturation", saturationAttachment, "saturation");
-    setupSlider(wetDrySlider, wetDryLabel, "Wet/Dry", wetDryAttachment, "wetdry");
-    setupSlider(outputGainSlider, outputGainLabel, "Output", outputGainAttachment, "outputgain");
+    setupSlider(inputGainSlider, inputGainAttachment, "inputgain");
+    setupSlider(thresholdSlider, thresholdAttachment, "threshold");
+    setupSlider(ratioSlider, ratioAttachment, "ratio");
+    setupSlider(makeupSlider, makeupAttachment, "makeupgain");
+    setupSlider(attackSlider, attackAttachment, "attack");
+    setupSlider(releaseSlider, releaseAttachment, "release");
+    setupSlider(saturationSlider, saturationAttachment, "saturation");
+    setupSlider(wetDrySlider, wetDryAttachment, "wetdry");
+    setupSlider(outputGainSlider, outputGainAttachment, "outputgain");
+
+    setupSlider(gateThresholdSlider, gateThresholdAttachment, "gatethreshold");
+    setupSlider(gateRangeSlider, gateRangeAttachment, "gaterange");
+    setupSlider(gateReleaseSlider, gateReleaseAttachment, "gaterelease");
+    setupSlider(delayVolSlider, delayVolAttachment, "delayvol");
+    setupSlider(fxWetDrySlider, fxWetDryAttachment, "fxwetdry");
 
     limitButton.setButtonText("");
-    limitButton.setAlpha(0.0f); // Make it invisible but clickable
+    limitButton.setAlpha(0.0f);
     addAndMakeVisible(limitButton);
     limitAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(audioProcessor.apvts, "limit", limitButton);
 
-    // Enable resizability
     setResizable(true, true);
-    setResizeLimits(400, 300, 2048, 1536);
-    getConstrainer()->setFixedAspectRatio(1024.0 / 768.0);
+    setResizeLimits(600, 450, 2400, 1800);
+    getConstrainer()->setFixedAspectRatio(1230.0 / 930.0);
 
-    // Apply custom look and feel to all sliders
-    auto applyLAF = [&](juce::Slider& s) {
-        s.setLookAndFeel(&customLookAndFeel);
-    };
-    applyLAF(inputGainSlider);
-    applyLAF(thresholdSlider);
-    applyLAF(ratioSlider);
-    applyLAF(makeupSlider);
-    applyLAF(attackSlider);
-    applyLAF(releaseSlider);
-    applyLAF(saturationSlider);
-    applyLAF(wetDrySlider);
-    applyLAF(outputGainSlider);
-
-    setSize(1024, 768); // Match skin aspect ratio
+    setSize(1230, 930);
     startTimerHz(30);
 }
 
@@ -64,26 +51,44 @@ void OpticalCompressorAudioProcessorEditor::paint(juce::Graphics& g)
     auto skin = juce::ImageCache::getFromMemory(BinaryData::skin_jpg, BinaryData::skin_jpgSize);
     if (skin.isValid())
         g.drawImageWithin(skin, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
-    else
-        g.fillAll(juce::Colours::black);
 
-    float scaleX = getWidth() / 1230.0f; // Original image width
-    float scaleY = getHeight() / 930.0f; // Original image height
+    float scaleX = getWidth() / 1230.0f;
+    float scaleY = getHeight() / 930.0f;
 
-    // Draw Gain Reduction Meter
-    auto meterArea = juce::Rectangle<float>(175 * scaleX, 305 * scaleY, 65 * scaleX, 465 * scaleY);
+    // 1. Glowing Gain Reduction Meter
+    auto meterArea = juce::Rectangle<float>(145 * scaleX, 275 * scaleY, 60 * scaleX, 400 * scaleY);
     float gr = audioProcessor.getGainReduction(); 
     float grNormalized = juce::jlimit(0.0f, 1.0f, std::abs(gr) / 24.0f);
     
-    g.setColour(juce::Colours::red.withAlpha(0.8f));
-    float grHeight = meterArea.getHeight() * grNormalized;
-    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getY()));
+    if (grNormalized > 0.01f) {
+        juce::Colour glowColor = juce::Colours::red.withAlpha(0.6f * grNormalized);
+        g.setColour(glowColor);
+        for (int i = 1; i <= 5; ++i) {
+            g.drawRect(meterArea.expanded(i * scaleX), 1.0f);
+        }
+        g.setColour(juce::Colours::red);
+        float grHeight = meterArea.getHeight() * grNormalized;
+        g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getBottom() - grHeight));
+    }
 
-    // Draw Limit Light
-    if (audioProcessor.apvts.getRawParameterValue("limit")->load() > 0.5f)
-    {
-        g.setColour(juce::Colours::red.withAlpha(0.9f));
-        g.fillEllipse(595 * scaleX, 855 * scaleY, 30 * scaleX, 30 * scaleY);
+    // 2. Interactive EQ Glowing Bars
+    for (int i = 0; i < 13; ++i) {
+        if (eqBands[i]) {
+            float xPos = (315 + i * 45) * scaleX;
+            auto eqBar = juce::Rectangle<float>(xPos, 830 * scaleY, 30 * scaleX, 80 * scaleY);
+            g.setColour(juce::Colours::red.withAlpha(0.7f));
+            g.fillRect(eqBar);
+            g.setColour(juce::Colours::white.withAlpha(0.3f));
+            g.drawRect(eqBar, 1.0f);
+        }
+    }
+
+    // 3. Limit Light
+    if (audioProcessor.apvts.getRawParameterValue("limit")->load() > 0.5f) {
+        g.setColour(juce::Colours::red);
+        g.fillEllipse(495 * scaleX, 675 * scaleY, 25 * scaleX, 25 * scaleY);
+        g.setColour(juce::Colours::red.withAlpha(0.4f));
+        g.fillEllipse(485 * scaleX, 665 * scaleY, 45 * scaleX, 45 * scaleY);
     }
 }
 
@@ -96,47 +101,44 @@ void OpticalCompressorAudioProcessorEditor::resized()
         c.setBounds((int)(x * scaleX), (int)(y * scaleY), (int)(w * scaleX), (int)(h * scaleY));
     };
 
-    // Hide labels
-    inputGainLabel.setVisible(false);
-    thresholdLabel.setVisible(false);
-    ratioLabel.setVisible(false);
-    makeupLabel.setVisible(false);
-    attackLabel.setVisible(false);
-    releaseLabel.setVisible(false);
-    saturationLabel.setVisible(false);
-    wetDryLabel.setVisible(false);
-    outputGainLabel.setVisible(false);
+    // Main Knobs
+    setBoundsScaled(inputGainSlider, 320, 280, 110, 110);
+    setBoundsScaled(thresholdSlider, 490, 280, 110, 110);
+    setBoundsScaled(ratioSlider, 660, 280, 110, 110);
+    setBoundsScaled(makeupSlider, 830, 280, 110, 110);
 
-    // Precise coordinates for Epic Skin
-    setBoundsScaled(inputGainSlider, 380, 330, 130, 130);
-    setBoundsScaled(thresholdSlider, 590, 330, 130, 130);
-    setBoundsScaled(ratioSlider, 800, 330, 130, 130);
-    setBoundsScaled(makeupSlider, 1010, 330, 130, 130);
+    setBoundsScaled(attackSlider, 280, 490, 100, 100);
+    setBoundsScaled(releaseSlider, 420, 490, 100, 100);
+    setBoundsScaled(saturationSlider, 560, 490, 100, 100);
+    setBoundsScaled(wetDrySlider, 700, 490, 100, 100);
+    setBoundsScaled(outputGainSlider, 840, 490, 100, 100);
 
-    setBoundsScaled(attackSlider, 345, 645, 115, 115);
-    setBoundsScaled(releaseSlider, 515, 645, 115, 115);
-    setBoundsScaled(saturationSlider, 685, 645, 115, 115);
-    setBoundsScaled(wetDrySlider, 855, 645, 115, 115);
-    setBoundsScaled(outputGainSlider, 1025, 645, 115, 115);
-
-    setBoundsScaled(limitButton, 580, 840, 120, 60);
+    // Bottom Panel
+    setBoundsScaled(gateThresholdSlider, 65, 830, 70, 70);
+    setBoundsScaled(gateRangeSlider, 145, 830, 70, 70);
+    setBoundsScaled(gateReleaseSlider, 225, 830, 70, 70);
     
-    auto makeTransparent = [](juce::Slider& s) {
-        s.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::transparentBlack);
-        s.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::transparentBlack);
-        s.setColour(juce::Slider::thumbColourId, juce::Colours::transparentBlack);
-        s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    };
+    setBoundsScaled(delayVolSlider, 715, 840, 70, 70);
+    setBoundsScaled(fxWetDrySlider, 910, 850, 70, 70);
 
-    makeTransparent(inputGainSlider);
-    makeTransparent(thresholdSlider);
-    makeTransparent(ratioSlider);
-    makeTransparent(makeupSlider);
-    makeTransparent(attackSlider);
-    makeTransparent(releaseSlider);
-    makeTransparent(saturationSlider);
-    makeTransparent(wetDrySlider);
-    makeTransparent(outputGainSlider);
+    setBoundsScaled(limitButton, 450, 670, 120, 40);
+}
+
+void OpticalCompressorAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    float scaleX = getWidth() / 1230.0f;
+    float scaleY = getHeight() / 930.0f;
+
+    // EQ Band Toggling
+    for (int i = 0; i < 13; ++i) {
+        float xPos = (315 + i * 45) * scaleX;
+        auto eqBar = juce::Rectangle<float>(xPos, 830 * scaleY, 30 * scaleX, 80 * scaleY);
+        if (eqBar.contains(event.position)) {
+            eqBands[i] = !eqBands[i];
+            repaint();
+            return;
+        }
+    }
 }
 
 void OpticalCompressorAudioProcessorEditor::timerCallback()
