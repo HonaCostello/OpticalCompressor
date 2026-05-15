@@ -44,21 +44,22 @@ private:
     CustomLookAndFeel customLookAndFeel;
     OpticalCompressorAudioProcessor& audioProcessor;
 
-    // Sliders
-    juce::Slider inputGainSlider, thresholdSlider, ratioSlider, attackSlider, releaseSlider, makeupSlider, saturationSlider, wetDrySlider, outputGainSlider;
+    // Main Knobs
+    juce::Slider inputGainSlider, thresholdSlider, ratioSlider, makeupSlider;
+    juce::Slider attackSlider, releaseSlider, saturationSlider, wetDrySlider, outputGainSlider;
+    
+    // Bottom Panel Knobs
     juce::Slider gateThresholdSlider, gateRangeSlider, gateReleaseSlider, delayVolSlider, fxWetDrySlider;
     
     // Attachments
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputGainAttachment, thresholdAttachment, ratioAttachment, attackAttachment, releaseAttachment, makeupAttachment, saturationAttachment, wetDryAttachment, outputGainAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputGainAttachment, thresholdAttachment, ratioAttachment, makeupAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment, releaseAttachment, saturationAttachment, wetDryAttachment, outputGainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gateThresholdAttachment, gateRangeAttachment, gateReleaseAttachment, delayVolAttachment, fxWetDryAttachment;
     
     juce::ToggleButton limitButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> limitAttachment;
 
-    // EQ State
     bool eqBands[13] = {true, true, true, true, true, true, true, true, true, true, true, true, true};
-
-    void setupSlider(juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment, juce::String paramID);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OpticalCompressorAudioProcessorEditor)
 };
