@@ -21,6 +21,14 @@ juce_add_plugin(OpticalCompressor
     JUCE_VST3_CAN_REPLACE_VST2 FALSE
     PRODUCT_NAME "Optical Compressor")
 
+juce_add_binary_data(OpticalCompressorData
+    SOURCES
+        Resources/skin.jpg)
+
+target_link_libraries(OpticalCompressor
+    PRIVATE
+        OpticalCompressorData)
+
 target_sources(OpticalCompressor
     PRIVATE
         Source/PluginProcessor.cpp

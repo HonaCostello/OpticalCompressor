@@ -41,70 +41,75 @@ OpticalCompressorAudioProcessorEditor::~OpticalCompressorAudioProcessorEditor()
 
 void OpticalCompressorAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    auto skin = juce::ImageCache::getFromMemory(BinaryData::skin_jpg, BinaryData::skin_jpgSize);
+    if (skin.isValid())
+        g.drawImageWithin(skin, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
+    else
+        g.fillAll(juce::Colours::black);
 
-    g.setColour(juce::Colours::white);
-    g.setFont(20.0f);
-    g.drawText("Optical Compressor", getLocalBounds().removeFromTop(40), juce::Justification::centred, true);
-
-    // Draw Gain Reduction Meter
-    auto meterArea = getLocalBounds().removeFromRight(60).reduced(10, 50);
-    g.setColour(juce::Colours::black);
-    g.fillRect(meterArea);
-
-    float grNormalized = juce::jmap(audioProcessor.apvts.getRawParameterValue("threshold")->load() - 30.0f, -60.0f, 0.0f, 0.0f, 1.0f); // Placeholder logic
-    // In a real scenario, we'd pull the actual GR from the processor
+    // Draw Gain Reduction Meter (aligned with the skin's meter area)
+    auto meterArea = juce::Rectangle<int>(105, 125, 45, 450); // Approximate based on image
     
-    g.setColour(juce::Colours::red);
-    int grHeight = (int)(meterArea.getHeight() * (std::abs(audioProcessor.apvts.getRawParameterValue("threshold")->load()) / 60.0f)); // Simplified
-    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getY()));
+    float gr = audioProcessor.apvts.getRawParameterValue("threshold")->load(); // Simplified for now
+    float grNormalized = juce::jmap(gr, -50.0f, 5.0f, 0.0f, 1.0f);
+    
+    g.setColour(juce::Colours::red.withAlpha(0.8f));
+    int grHeight = (int)(meterArea.getHeight() * grNormalized);
+    g.fillRect(meterArea.withHeight(grHeight).withY(meterArea.getBottom() - grHeight));
 }
 
 void OpticalCompressorAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced(20);
-    area.removeFromTop(40);
+    // Adjusting sizes to match the 1024x768 aspect ratio of the skin
+    float scaleX = getWidth() / 1024.0f;
+    float scaleY = getHeight() / 768.0f;
 
-    auto row1 = area.removeFromTop(120);
-    auto row2 = area.removeFromTop(120);
+    auto setBoundsScaled = [&](juce::Component& c, int x, int y, int w, int h) {
+        c.setBounds((int)(x * scaleX), (int)(y * scaleY), (int)(w * scaleX), (int)(h * scaleY));
+    };
 
-    auto getSliderArea = [](juce::Rectangle<int>& row) { return row.removeFromLeft(row.getWidth() / 4); };
+    // Hide labels as they are part of the skin
+    inputGainLabel.setVisible(false);
+    thresholdLabel.setVisible(false);
+    ratioLabel.setVisible(false);
+    makeupLabel.setVisible(false);
+    attackLabel.setVisible(false);
+    releaseLabel.setVisible(false);
+    saturationLabel.setVisible(false);
+    wetDryLabel.setVisible(false);
+    outputGainLabel.setVisible(false);
 
-    auto s1 = row1.removeFromLeft(110);
-    inputGainSlider.setBounds(s1.removeFromTop(90));
-    inputGainLabel.setBounds(s1);
+    // Position sliders over the skin's knobs
+    setBoundsScaled(inputGainSlider, 280, 220, 120, 120);
+    setBoundsScaled(thresholdSlider, 460, 220, 120, 120); // "Peak Reduction" in skin
+    setBoundsScaled(ratioSlider, 640, 220, 120, 120);
+    setBoundsScaled(makeupSlider, 820, 220, 120, 120);
 
-    auto s2 = row1.removeFromLeft(110);
-    thresholdSlider.setBounds(s2.removeFromTop(90));
-    thresholdLabel.setBounds(s2);
+    setBoundsScaled(attackSlider, 280, 480, 120, 120);
+    setBoundsScaled(releaseSlider, 460, 480, 120, 120);
+    setBoundsScaled(saturationSlider, 640, 480, 120, 120);
+    setBoundsScaled(wetDrySlider, 820, 480, 120, 120);
 
-    auto s3 = row1.removeFromLeft(110);
-    ratioSlider.setBounds(s3.removeFromTop(90));
-    ratioLabel.setBounds(s3);
+    setBoundsScaled(outputGainSlider, 820, 620, 120, 120);
+    setBoundsScaled(limitButton, 440, 680, 150, 50);
+    
+    // Make sliders transparent to show the skin's knobs
+    auto makeTransparent = [](juce::Slider& s) {
+        s.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::transparentBlack);
+        s.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::transparentBlack);
+        s.setColour(juce::Slider::thumbColourId, juce::Colours::transparentBlack);
+        s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    };
 
-    auto s4 = row1.removeFromLeft(110);
-    makeupSlider.setBounds(s4.removeFromTop(90));
-    makeupLabel.setBounds(s4);
-
-    auto s5 = row2.removeFromLeft(110);
-    attackSlider.setBounds(s5.removeFromTop(90));
-    attackLabel.setBounds(s5);
-
-    auto s6 = row2.removeFromLeft(110);
-    releaseSlider.setBounds(s6.removeFromTop(90));
-    releaseLabel.setBounds(s6);
-
-    auto s7 = row2.removeFromLeft(110);
-    saturationSlider.setBounds(s7.removeFromTop(90));
-    saturationLabel.setBounds(s7);
-
-    auto s8 = row2.removeFromLeft(110);
-    wetDrySlider.setBounds(s8.removeFromTop(90));
-    wetDryLabel.setBounds(s8);
-
-    limitButton.setBounds(area.removeFromLeft(100).withHeight(30));
-    outputGainSlider.setBounds(area.removeFromRight(110).removeFromTop(90));
-    outputGainLabel.setBounds(area.removeFromRight(110));
+    makeTransparent(inputGainSlider);
+    makeTransparent(thresholdSlider);
+    makeTransparent(ratioSlider);
+    makeTransparent(makeupSlider);
+    makeTransparent(attackSlider);
+    makeTransparent(releaseSlider);
+    makeTransparent(saturationSlider);
+    makeTransparent(wetDrySlider);
+    makeTransparent(outputGainSlider);
 }
 
 void OpticalCompressorAudioProcessorEditor::timerCallback()
