@@ -1,0 +1,33 @@
+name: Build Optical Compressor
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Install dependencies
+      run: |
+        # No extra dependencies needed for macOS JUCE build usually
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: OpticalCompressor-macOS
+        path: |
+          build/OpticalCompressor_artefacts/Release/VST3/Optical Compressor.vst3
+          build/OpticalCompressor_artefacts/Release/AU/Optical Compressor.component
